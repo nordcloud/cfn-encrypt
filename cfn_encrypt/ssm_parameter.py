@@ -25,7 +25,7 @@ def handler(event, context):
             if event["RequestType"] == "Create" and parameter_exist(name):
                 raise NameError("A Parameter named {} already exists".format(name))
 
-            boto3.client('ssm').put_parameter(
+            response = boto3.client('ssm').put_parameter(
                 Name=name,
                 Description=event["ResourceProperties"]["Description"],
                 Value=event["ResourceProperties"]["Value"],
@@ -36,7 +36,7 @@ def handler(event, context):
 
             logger.info("Successfully stored parameter {}".format(name))
 
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, None, name)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response, name)
         else:
             boto3.client('ssm').delete_parameter(
                 Name=event["PhysicalResourceId"],

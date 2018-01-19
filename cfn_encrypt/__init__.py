@@ -1,4 +1,4 @@
-from troposphere import cloudformation, AWSProperty
+from troposphere import cloudformation, AWSProperty, validators
 
 try:
     unicode = unicode
@@ -35,4 +35,14 @@ class SecureParameter(cloudformation.AWSCustomObject):
         'Description': (basestring, True),
         'KeyId': (basestring, True),
 
+    }
+
+
+class GetSsmValue(cloudformation.AWSCustomObject):
+    resource_type = "Custom::GetSsmValue"
+    props = {
+        'ServiceToken': (basestring, True),
+        'Name': (basestring, True),
+        'KeyId': (basestring, True),
+        'Version': (validators.positive_integer, False)
     }

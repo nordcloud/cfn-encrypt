@@ -1,7 +1,7 @@
 import os
 
 from awacs.aws import Policy, Allow, Statement, Principal, Action
-from cfn_encrypt import Encrypt, EncryptionContext, SecureParameter
+from cfn_encrypt import Encrypt, EncryptionContext, SecureParameter, GetSsmValue
 from troposphere import (Template, iam, GetAtt, Join, Ref, logs, Output, Sub, Parameter, awslambda,
                          Base64, Export)
 
@@ -11,7 +11,7 @@ kms_key_arn = t.add_parameter(Parameter(
     "KmsKeyArn",
     Type="String",
     Description="KMS alias ARN for lambda",
-    Default="arn:aws:kms:eu-central-1:632826021673:key/df7da78d-4b19-42a3-bc94-acbb8eb22ae6"
+
 ))
 
 plain_text = t.add_parameter(Parameter(
@@ -26,6 +26,12 @@ plain_text = t.add_parameter(Parameter(
 log_group_ssm = t.add_resource(logs.LogGroup(
     "LogGroupSsm",
     LogGroupName=Join("", ["/aws/lambda/", Join("-", [Ref("AWS::StackName"), "ssm"])]),
+    RetentionInDays=14
+))
+
+log_group_get_ssm_value = t.add_resource(logs.LogGroup(
+    "LogGroupGetSsmValue",
+    LogGroupName=Join("", ["/aws/lambda/", Join("-", [Ref("AWS::StackName"), "get-ssm-value"])]),
     RetentionInDays=14
 ))
 
@@ -125,9 +131,66 @@ ssm_lambda_role = t.add_resource(iam.Role(
     ]
 ))
 
+get_ssm_value_role = t.add_resource(iam.Role(
+    "GetSsmValueRole",
+    AssumeRolePolicyDocument=Policy(
+        Version="2012-10-17",
+        Statement=[
+            Statement(
+                Effect=Allow,
+                Principal=Principal("Service", "lambda.amazonaws.com"),
+                Action=[Action("sts", "AssumeRole")]
+            )
+        ]),
+    Path="/",
+    ManagedPolicyArns=["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
+    Policies=[
+        iam.Policy(
+            PolicyName="decrypt",
+            PolicyDocument=Policy(
+                Version="2012-10-17",
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[
+                            Action("kms", "Decrypt"),
+                        ],
+                        Resource=[Ref(kms_key_arn)]
+                    )
+                ],
+            )
+        ),
+        iam.Policy(
+            PolicyName="ssm",
+            PolicyDocument=Policy(
+                Version="2012-10-17",
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[
+                            Action("ssm", "GetParameterHistory"),
+                        ],
+                        Resource=[
+                            Join("", ["arn:aws:ssm:", Ref("AWS::Region"), ":", Ref("AWS::AccountId"), ":parameter/*"])]
+                    ),
+                    Statement(
+                        Effect=Allow,
+                        Action=[
+                            Action("ssm", "DescribeParameters")
+                        ],
+                        Resource=["*"]
+                    )
+                ],
+            )
+        )
+    ]
+))
+
 simple_encrypt_filename = os.path.join(os.path.dirname(__file__), "cfn_encrypt/simple_encrypt.py")
 
 ssm_parameter_filename = os.path.join(os.path.dirname(__file__), "cfn_encrypt/ssm_parameter.py")
+
+get_ssm_value_filename = os.path.join(os.path.dirname(__file__), "cfn_encrypt/get_ssm_value.py")
 
 encrypt_lambda = t.add_resource(awslambda.Function(
     "EncryptLambda",
@@ -151,6 +214,18 @@ ssm_parameter_lambda = t.add_resource(awslambda.Function(
     Timeout=300,
     MemorySize=1536,
     Code=lambda_from_file(ssm_parameter_filename),
+))
+
+get_ssm_value_lambda = t.add_resource(awslambda.Function(
+    "GetSsmValueLambda",
+    FunctionName=Join("-", [Ref("AWS::StackName"), "get-ssm-value"]),
+    DependsOn=[log_group_get_ssm_value.title],
+    Handler="index.handler",
+    Role=GetAtt(get_ssm_value_role, "Arn"),
+    Runtime="python2.7",
+    Timeout=300,
+    MemorySize=1536,
+    Code=lambda_from_file(get_ssm_value_filename),
 ))
 
 my_encrypted_value = t.add_resource(Encrypt(
@@ -181,6 +256,14 @@ my_secure_parameter = t.add_resource(SecureParameter(
     KeyId=Ref(kms_key_arn)
 ))
 
+my_decrypted_value = t.add_resource(GetSsmValue(
+    "MyDecryptedValue",
+    ServiceToken=GetAtt(get_ssm_value_lambda, "Arn"),
+    Name=Ref(my_secure_parameter),
+    KeyId=Ref(kms_key_arn),
+    Version=GetAtt(my_secure_parameter,"Version")
+
+))
 
 t.add_output(Output(
     "MySecureParameter",
@@ -201,8 +284,17 @@ t.add_output(Output(
 ))
 
 t.add_output(Output(
+    my_decrypted_value.title + "Value",
+    Value=GetAtt(my_decrypted_value, "Value")
+))
+
+t.add_output(Output(
+    my_decrypted_value.title + "Version",
+    Value=GetAtt(my_decrypted_value, "Version")
+))
+t.add_output(Output(
     "EncryptLambdaArn",
-    Description="lambda arn",
+    Description="Encrypt lambda arn",
     Value=GetAtt(encrypt_lambda, "Arn"),
     Export=Export(
         Sub(
@@ -213,11 +305,22 @@ t.add_output(Output(
 
 t.add_output(Output(
     "SsmParameterLambdaArn",
-    Description="kms key arn",
+    Description="Ssm paramter lambda arn",
     Value=GetAtt(ssm_parameter_lambda, "Arn"),
     Export=Export(
         Sub(
             "${AWS::StackName}-SsmParameterLambdaArn"
+        )
+    )
+))
+
+t.add_output(Output(
+    get_ssm_value_lambda.title + "Arn",
+    Description="get ssm value lambda arn",
+    Value=GetAtt(get_ssm_value_lambda, "Arn"),
+    Export=Export(
+        Sub(
+            "${AWS::StackName}-" + get_ssm_value_lambda.title + "Arn",
         )
     )
 ))

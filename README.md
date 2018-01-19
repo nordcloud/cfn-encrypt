@@ -1,3 +1,4 @@
+
 # README #
 
 
@@ -6,6 +7,7 @@
 
 * To encrypt values in cloudformation
 * To Create secure ssm parameters in cloudformation
+* To Retrieve secure ssm paramters in cloudformation
 
 
 
@@ -197,6 +199,60 @@ my_secure_parameter = t.add_resource(SecureParameter(
 
 ~~~~
 
+
+
+
+#### get ssm parameter ####
+
+
+Import the custom resource class
+~~~~
+from cfn_encrypt import GetSsmValue
+~~~~
+
+
+Create a parameter so you can reference to the template the lambda was
+created in
+~~~~
+encrypt_lambda_stack = t.add_parameter(Parameter(
+    "EncryptLambdaStack",
+    Type="String",
+    Description="Stack name of the encryption lambda"
+))
+~~~~
+
+Import KmsKeyArn and LambdaArn from the lambda stack
+~~~~
+kms_key_arn = ImportValue(Sub("${EncryptLambdaStack}-KmsKeyArn"))
+lambda_arn = ImportValue(Sub("${EncryptLambdaStack}-EncryptLambdaArn"))
+~~~~
+
+
+
+
+Invoke the lambda
+~~~~
+my_decrypted_value = t.add_resource(GetSsmValue(
+    "MyDecryptedValue",
+    ServiceToken=lambda_arn,
+    Name="/My/Parameter/Name",
+    KeyId=kms_key_arn,
+    Version=5 # Optional
+
+))
+
+Use GetAtt  to get information about the parameter
+ 'Name': 'string',
+ 'Type': 'String'|'StringList'|'SecureString',
+ 'KeyId': 'string',
+'LastModifiedDate': datetime(2015, 1, 1),
+'LastModifiedUser': 'string',
+'Description': 'string',
+'Value': 'string',
+'AllowedPattern': 'string',
+'Version': 123
+
+~~~~
 
 
 
