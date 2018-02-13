@@ -3,7 +3,7 @@ import cfnresponse, logging, traceback, boto3
 
 def parameter_exist(name):
     response = boto3.client('ssm').describe_parameters(
-        Filters=[{
+        ParameterFilters=[{
             'Key': 'Name',
             'Values': [
                 name
