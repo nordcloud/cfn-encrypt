@@ -4,7 +4,7 @@ from dateutil.tz import tzlocal
 
 def parameter_exist(name):
     response = boto3.client('ssm').describe_parameters(
-        Filters=[{
+        ParameterFilters=[{
             'Key': 'Name',
             'Values': [
                 name
