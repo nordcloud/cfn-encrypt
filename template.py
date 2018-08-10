@@ -304,8 +304,19 @@ t.add_output(Output(
 ))
 
 t.add_output(Output(
+    "KmsKeyArn",
+    Description="My secure parameter name",
+    Value=Ref(kms_key_arn),
+    Export=Export(
+        Sub(
+            "${AWS::StackName}-KmsKeyArn"
+        )
+    )
+))
+
+t.add_output(Output(
     "SsmParameterLambdaArn",
-    Description="Ssm paramter lambda arn",
+    Description="Ssm parameter lambda arn",
     Value=GetAtt(ssm_parameter_lambda, "Arn"),
     Export=Export(
         Sub(

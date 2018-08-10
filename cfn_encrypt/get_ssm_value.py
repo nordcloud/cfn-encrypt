@@ -51,14 +51,14 @@ def handler(event, context):
 
             cfnresponse.send(event, context, cfnresponse.SUCCESS,
                              json.loads(json.dumps(ret_value, default=date_2_string)),
-                             name + str(ret_value["Version"]))
+                             name + str(ret_value["Version"]), noEcho=True)
         else:
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, None, name)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, None, name, noEcho=True)
 
     except Exception as ex:
         logger.error("Faild get parameter value: %s", name)
         logger.debug("Stack trace %s", traceback.format_exc())
         if event["RequestType"] in ["Create", "Update"]:
-            cfnresponse.send(event, context, cfnresponse.FAILED, None, "0")
+            cfnresponse.send(event, context, cfnresponse.FAILED, None, "0", noEcho=True)
         else:
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, None, "0")
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, None, "0", noEcho=True)
