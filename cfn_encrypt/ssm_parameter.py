@@ -56,7 +56,6 @@ def handler(event, context):
             if not value:
                 raise ValueError("Either generate a password or set a value")
 
-            print(value)
             response = boto3.client('ssm').put_parameter(
                 Name=name,
                 Description=event["ResourceProperties"]["Description"],
