@@ -34,9 +34,9 @@ class SecureParameter(cloudformation.AWSCustomObject):
         'Value': (basestring, True),
         'Description': (basestring, True),
         'KeyId': (basestring, True),
-        'GeneratePassword': (basestring, True),
-        'GeneratePasswordLength': (basestring, False),
-        'GeneratePasswordAllowSpecialCharacters': (basestring, False),
+        'GeneratePassword': (boolean, True),
+        'GeneratePasswordLength': (validators.positive_integer, False),
+        'GeneratePasswordAllowSpecialCharacters': (boolean, False),
     }
 
 
