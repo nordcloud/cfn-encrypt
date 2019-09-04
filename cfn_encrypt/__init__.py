@@ -34,7 +34,18 @@ class SecureParameter(cloudformation.AWSCustomObject):
         'Value': (basestring, True),
         'Description': (basestring, True),
         'KeyId': (basestring, True),
+    }
 
+
+class GeneratePassword(cloudformation.AWSCustomObject):
+    resource_type = "Custom::GeneratedPasswordParameter"
+    props = {
+        'ServiceToken': (basestring, True),
+        'Name': (basestring, True),
+        'Length': (basestring, True),
+        'Description': (basestring, True),
+        'KeyId': (basestring, True),
+        'WithSpecialCharacters': (basestring, True)
     }
 
 
