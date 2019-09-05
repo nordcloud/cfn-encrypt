@@ -31,12 +31,12 @@ class SecureParameter(cloudformation.AWSCustomObject):
     props = {
         'ServiceToken': (basestring, True),
         'Name': (basestring, True),
-        'Value': (basestring, True),
+        'Value': (basestring, False),
         'Description': (basestring, True),
         'KeyId': (basestring, True),
-        'GeneratePassword': (boolean, True),
+        'GeneratePassword': (validators.boolean, False),
         'GeneratePasswordLength': (validators.positive_integer, False),
-        'GeneratePasswordAllowSpecialCharacters': (boolean, False),
+        'GeneratePasswordAllowSpecialCharacters': (validators.boolean, False),
     }
 
 
